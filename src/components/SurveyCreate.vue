@@ -62,7 +62,7 @@
 								v-model="question.family"
 								slot="prepend"
 								placeholder="Type of question"
-								@change="handleTypeChange(index)">
+								@change="handleTypeChange(key, index)">
 								<el-option label="Single choice" value="single_choice"/>
 								<el-option label="Multiple choice" value="multiple_choice"/>	
 								<el-option label="Matrix" value="matrix"/>	
@@ -74,10 +74,12 @@
 
 				<div class="answer-items" v-if="question.family">
 					<el-row>
-						<el-col :span="20">
-							Choices:
+						<el-col :span="24">
+							<span class="subtitle">Choices:</span>
 						</el-col>
-						<el-col :span="4">
+					</el-row>
+					<el-row>
+						<el-col :span="24">
 							<el-button
 								type="text"
 								icon="el-icon-circle-plus-outline"
@@ -95,6 +97,37 @@
 									icon="el-icon-delete"
 									slot="append"
 									@click="deleteChoice(key, index, ix)"
+								/>
+							</el-input>
+						</el-col>
+					</el-row>
+				</div>
+
+				<div class="answer-items" v-if="question.family && question.family === 'matrix'">
+					<el-row>
+						<el-col :span="24">
+							<span class="subtitle">Rows:</span>
+						</el-col>
+					</el-row>
+					<el-row>
+						<el-col :span="24">
+							<el-button
+								type="text"
+								icon="el-icon-circle-plus-outline"
+								style="float: right;"
+								@click="addRow(key, index)">
+									Add another row
+							</el-button>
+						</el-col>
+					</el-row>
+					<el-row v-for="(row, ix) in question.answers.rows" :key="ix">
+						<el-col :span="24">
+							<el-input v-model="row.text" :placeholder="`Write row ${ix + 1}`">
+								<el-button
+									v-if="ix > 0"
+									icon="el-icon-delete"
+									slot="append"
+									@click="deleteRow(key, index, ix)"
 								/>
 							</el-input>
 						</el-col>
@@ -141,10 +174,12 @@
 							{
 								family: null,
 								subtype: 'vertical',
+								forced_ranking: null,
 								answers: {
 									choices: [
 										{ text: '', position: 1 },
 									],
+									rows: [],
 								},
 								headings: [
 									{ heading: '', position: 1 },
@@ -169,6 +204,7 @@
 								choices: [
 									{ text: '', position: 1 },
 								],
+								rows: [],
 							},
 							headings: [
 								{ heading: '', position: 1 },
@@ -188,6 +224,7 @@
 						choices: [
 							{ text: '', position: 1 },
 						],
+						rows: [],
 					},
 					headings: [
 						{ heading: '', position: 1 },
@@ -203,6 +240,18 @@
 			},
 			deleteChoice (key, index, ix) {
 				this.pages[key].questions[index].answers.choices.splice(ix, 1);
+			},
+			handleTypeChange(key, index) {
+				const family = this.pages[key].questions[index].family;
+				if (family === 'matrix') {
+					this.pages[key].questions[index].answers.rows.push({ text: '' });
+				}
+			},
+			addRow(key, index) {
+				this.pages[key].questions[index].answers.rows.push({ text: '' });
+			},
+			deleteRow (key, index, ix) {
+				this.pages[key].questions[index].answers.rows.splice(ix, 1);
 			},
 		}
 	}
@@ -235,6 +284,11 @@
 				.answer-items {
 					.el-row {
 						.el-col {
+							.subtitle {
+								display: block;
+								position: relative;
+								top: 30px;
+							}
 							.el-input {
 								margin-top: 10px;
 							}
