@@ -76,7 +76,7 @@
 					</el-col>
 				</el-row>
 
-				<div class="answer-items" v-if="question.family">
+				<div class="answer-items" v-if="question.family && question.family !== 'open_ended'">
 					<el-row>
 						<el-col :span="24">
 							<span class="subtitle">Choices:</span>
@@ -107,7 +107,7 @@
 					</el-row>
 				</div>
 
-				<div class="answer-items" v-if="question.family && question.family === 'matrix'">
+				<div class="answer-items" v-if="question.family === 'matrix' || question.family === 'open_ended'">
 					<el-row>
 						<el-col :span="24">
 							<span class="subtitle">Rows:</span>
@@ -211,9 +211,7 @@
 								forced_ranking: false,
 								position: 1,
 								answers: {
-									choices: [
-										{ text: '', position: 1 },
-									],
+									choices: [],
 								},
 								headings: [
 									{ heading: '' },
@@ -234,13 +232,9 @@
 						{
 							family: null,
 							subtype: 'vertical',
-							position: 1,
-							answers: {
-								choices: [
-									{ text: '' },
-								],
-								rows: [],
-							},
+							forced_ranking: false,
+							position: this.pages.length + 1,
+							answers: {},
 							headings: [
 								{ heading: '' },
 							],
@@ -255,13 +249,9 @@
 				this.pages[key].questions.push({
 					family: null,
 					subtype: 'vertical',
+					forced_ranking: false,
 					position: 1,
-					answers: {
-						choices: [
-							{ text: '' },
-						],
-						rows: [],
-					},
+					answers: {},
 					headings: [
 						{ heading: '' },
 					],
@@ -271,7 +261,16 @@
 				this.pages[key].questions.splice(index, 1);
 			},
 			addChoice(key, index) {
-				this.pages[key].questions[index].answers.choices.push({ text: '' });
+				const family = this.pages[key].questions[index].family;
+				if (family === 'matrix') {
+					this.pages[key].questions[index].answers.choices.push({ text: '' });
+				}
+				if (family === 'multiple_choice') {
+					this.pages[key].questions[index].answers.choices.push({ text: '' });
+				}
+				if (family === 'single_choice') {
+					this.pages[key].questions[index].answers.choices.push({ text: '', position: this.pages[key].questions[index].answers.choices.length + 1 });
+				}
 			},
 			deleteChoice (key, index, ix) {
 				this.pages[key].questions[index].answers.choices.splice(ix, 1);
@@ -279,7 +278,18 @@
 			handleTypeChange(key, index) {
 				const family = this.pages[key].questions[index].family;
 				if (family === 'matrix') {
-					this.pages[key].questions[index].answers.rows.push({ text: '' });
+					this.pages[key].questions[index].answers = { rows: [{ text: '' }], choices: [{ text: '' }] };
+					this.pages[key].questions[index].subtype = 'single';
+				}
+				if (family === 'open_ended'){
+					this.pages[key].questions[index].subtype = 'multi';
+					this.pages[key].questions[index].answers = { rows: [{ text: '' }] };
+				}
+				if (family === 'multiple_choice') {
+					this.pages[key].questions[index].answers = { choices: [{ text: '' }] };
+				}
+				if (family === 'single_choice') {
+					this.pages[key].questions[index].answers = { choices: [{ text: '', position: 1 }] }
 				}
 			},
 			addRow(key, index) {
