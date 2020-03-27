@@ -8,7 +8,7 @@
 		<el-row>
 			<el-col :span="24">
 				<div class="box-item">
-					Title: <el-input v-model="title" size="small" placeholder="Title of survey"/>
+					Title: <el-input v-model="title" placeholder="Title of survey"/>
 				</div>
 			</el-col>
 		</el-row>
@@ -30,16 +30,20 @@
 						plain>Delete this page</el-button>
 				</el-col>
 			</el-row>
-			<el-row :gutter="20">
+			<el-row>
 				<el-col :span="12">
 					Title:
 					<el-input v-model="page.title" placeholder="Title of page"/>
 				</el-col>
+			</el-row>
+			<el-row>
 				<el-col :span="12">
 					Description:
 					<el-input type="textarea" rows="3" v-model="page.description"/>
 				</el-col>
 			</el-row>
+
+			<el-divider/>
 
 			<div v-for="(question, index) in page.questions" :key="index" class="question-item">
 
@@ -144,6 +148,7 @@
 							type="primary"
 							@click="addQuestion(key)"
 							style="float: right;"
+							plain
 							icon="el-icon-circle-plus-outline"
 							size="small">Add new question
 					</el-button>
@@ -153,9 +158,35 @@
 
 		<el-row>
 			<el-col :span="24" style="text-align: center;">
-				<el-button type="primary" @click="addPage">Add Page</el-button>
+				<el-button type="primary" @click="addPage" plain>Add Page</el-button>
 			</el-col>
 		</el-row>
+
+		<div class="box-item" style="margin-top: 15px;">
+			<el-row>
+				<el-col :span="24">
+					<el-button
+						type="primary"
+						:loading="loading"
+						style="float: right;"
+						@click="save">
+						Save</el-button>
+				</el-col>
+			</el-row>
+		</div>
+
+		<el-dialog
+			title="Survey Saved!"
+			:visible.sync="showDialog"
+		>
+			<div>
+				Link: <a :href="collectorLink">{{ collectorLink }}</a><br>
+				<el-button type="text" @click="copyToClipboard">Copy link</el-button>
+			</div>
+			<span slot="footer" class="dialog-footer" style="text-align: center">
+				<el-button @click="showDialog = false" type="primary">Ok</el-button>
+			</span>
+		</el-dialog>
 
 	</div>
 </template>
@@ -164,6 +195,9 @@
 		name: 'survey-create',
 		data() {
 			return {
+				showDialog: false,
+				collectorLink:'',
+				loading: false,
 				title: '',
 				pages: [
 					{
@@ -174,15 +208,15 @@
 							{
 								family: null,
 								subtype: 'vertical',
-								forced_ranking: null,
+								forced_ranking: false,
+								position: 1,
 								answers: {
 									choices: [
 										{ text: '', position: 1 },
 									],
-									rows: [],
 								},
 								headings: [
-									{ heading: '', position: 1 },
+									{ heading: '' },
 								],
 							},
 						],
@@ -200,14 +234,15 @@
 						{
 							family: null,
 							subtype: 'vertical',
+							position: 1,
 							answers: {
 								choices: [
-									{ text: '', position: 1 },
+									{ text: '' },
 								],
 								rows: [],
 							},
 							headings: [
-								{ heading: '', position: 1 },
+								{ heading: '' },
 							],
 						},
 					],
@@ -220,14 +255,15 @@
 				this.pages[key].questions.push({
 					family: null,
 					subtype: 'vertical',
+					position: 1,
 					answers: {
 						choices: [
-							{ text: '', position: 1 },
+							{ text: '' },
 						],
 						rows: [],
 					},
 					headings: [
-						{ heading: '', position: 1 },
+						{ heading: '' },
 					],
 				});
 			},
@@ -235,8 +271,7 @@
 				this.pages[key].questions.splice(index, 1);
 			},
 			addChoice(key, index) {
-				const position = this.pages[key].questions[index].answers.choices.length + 1;
-				this.pages[key].questions[index].answers.choices.push({ text: '', position: position });
+				this.pages[key].questions[index].answers.choices.push({ text: '' });
 			},
 			deleteChoice (key, index, ix) {
 				this.pages[key].questions[index].answers.choices.splice(ix, 1);
@@ -253,6 +288,70 @@
 			deleteRow (key, index, ix) {
 				this.pages[key].questions[index].answers.rows.splice(ix, 1);
 			},
+			clearSurvey() {
+				this.title = '';
+				this.pages = [
+					{
+						title: '',
+						description: '',
+						position: 1,
+						questions: [
+							{
+								family: null,
+								subtype: 'vertical',
+								forced_ranking: false,
+								position: 1,
+								answers: {
+									choices: [
+										{ text: '', position: 1 },
+									],
+								},
+								headings: [
+									{ heading: '' },
+								],
+							},
+						]
+					}
+				];
+			},
+			async save() {
+				this.loading = true;
+				const save = {
+					title: this.title,
+					pages: this.pages,
+				};
+				const api = 'https://api.surveymonkey.net/v3/surveys/';
+				const auth = {
+					headers: { Authorization: 'Bearer ZP.5GmFFT9TZ5WkNVnvgrSvIC4pLoJOfL.LfgWH4ufwd8.whwVQseg5cTnPDucq2iav7G2t6eOrF4kxr8FiO1ptvMAFTqxcBMFx3N72xFIBMTL0yE-nw1859vZu8RqZq' },
+					mode: 'cors',
+				};
+				await this.axios.post(api, save, auth).then((response) => {
+					const data = response.data;
+					this.axios.get(`${api}${data.id}/collectors`,auth).then((resp) => {
+						this.showDialog = true;
+						this.clearSurvey();
+						this.collectorLink = resp.data.links.self;
+						this.loading = false;
+					})
+				}).catch((e) => {
+					console.log('Error', e);
+				});
+			},
+			copyToClipboard() {
+				const el = document.createElement('textarea');
+				el.value = this.collectorLink;
+				el.setAttribute('readonly', '');
+				el.style = {position: 'absolute', left: '-9999px'};
+				document.body.appendChild(el);
+				el.select();
+				document.execCommand('copy');
+				document.body.removeChild(el);
+				this.$message({
+          showClose: true,
+          message: 'Link copied!',
+          type: 'success'
+        });
+			}
 		}
 	}
 </script>
@@ -262,7 +361,7 @@
 		.box-item {
 			display: block;
 			position: relative;
-			background: #f6fbff;
+			background: #e7eff9;
 			border: 1px solid #bfe3ff;
 			border-radius: 7px;
 			padding:10px;
