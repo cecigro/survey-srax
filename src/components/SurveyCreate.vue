@@ -178,9 +178,10 @@
 		<el-dialog
 			title="Survey Saved!"
 			:visible.sync="showDialog"
+			width="30%"
 		>
 			<div>
-				Link: <a :href="collectorLink">{{ collectorLink }}</a><br>
+				Link to survey: <a :href="collectorLink">{{ collectorLink }}</a><br>
 				<el-button type="text" @click="copyToClipboard">Copy link</el-button>
 			</div>
 			<span slot="footer" class="dialog-footer" style="text-align: center">
@@ -337,10 +338,10 @@
 				};
 				await this.axios.post(api, save, auth).then((response) => {
 					const data = response.data;
-					this.axios.get(`${api}${data.id}/collectors`,auth).then((resp) => {
+					this.axios.post(`${api}${data.id}/collectors`,{ "type": "weblink" },auth).then((resp) => {
 						this.showDialog = true;
 						this.clearSurvey();
-						this.collectorLink = resp.data.links.self;
+						this.collectorLink = resp.data.url;
 						this.loading = false;
 					})
 				}).catch((e) => {
